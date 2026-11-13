@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Great+Vibes&family=Cormorant+Garamond:wght@500;700&family=Noto+Serif+Devanagari:wght@500&display=swap">
+<title>KAVACH – Disaster Safety Quiz</title>
+<style>
+:root{--bg:#fff7ed;--fg:#1c1917;--card:#fff;--mut:#78716c;--ac:#c2410c;--bd:#e7e5e4;--ok:#15803d;--bad:#b91c1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1412;--fg:#fafaf9;--card:#292220;--mut:#a8a29e;--ac:#fb923c;--bd:#44403c;--ok:#4ade80;--bad:#f87171;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1a1412;--fg:#fafaf9;--card:#292220;--mut:#a8a29e;--ac:#fb923c;--bd:#44403c;--ok:#4ade80;--bad:#f87171;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{text-align:center;padding:20px 16px 8px}
+h1{margin:0;letter-spacing:.2em;color:var(--ac);font-size:2.2rem}
+header p{margin:4px 0 0;color:var(--mut)}
+.ticker{overflow:hidden;white-space:nowrap;background:var(--ac);color:#fff;padding:8px 0;margin-top:12px}
+.ticker span{display:inline-block;padding-left:100%;animation:scroll 80s linear infinite}
+@keyframes scroll{to{transform:translateX(-100%)}}
+main{max-width:640px;margin:0 auto;padding:16px;display:grid;gap:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px}
+h2{margin:0 0 10px;font-size:1.2rem}
+input,button{font:inherit;border-radius:10px;border:1px solid var(--bd);padding:12px;width:100%}
+input{background:var(--bg);color:var(--fg)}
+button{background:var(--ac);color:#fff;border:0;font-weight:600;cursor:pointer;margin-top:10px}
+button.opt{background:var(--bg);color:var(--fg);border:1px solid var(--bd);text-align:left;font-weight:400;margin-top:8px}
+button.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--bg))}
+button.opt.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,var(--bg))}
+.bar{height:6px;background:var(--bd);border-radius:3px;margin-bottom:12px}.bar i{display:block;height:100%;background:var(--ac);border-radius:3px}
+.mut{color:var(--mut);font-size:.9rem}
+ol{margin:0;padding-left:1.4em}li{padding:3px 0}li b{float:right}
+.hide{display:none!important}
+#alert{position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;color:#fff;background:#b91c1c;animation:flash 1s infinite}
+@keyframes flash{50%{background:#7f1d1d}}
+#alert .ic{font-size:5rem}#alert h2{font-size:2rem;margin:8px 0}#alert p{max-width:420px;font-size:1.1rem}
+#alert button{background:#fff;color:#7f1d1d;max-width:260px}
+.adm{border:2px dashed var(--ac)}.adm .g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+</style><style>
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{--bg:#0b2a1b;--fg:#f0fdf4;--card:rgba(6,44,26,.82);--mut:#a7d7b8;--ac:#22c55e;--bd:rgba(134,239,172,.28);--ok:#4ade80;--bad:#fca5a5;color-scheme:dark}
+body{background:#0b2a1b}.bg{position:fixed;inset:0;width:100%;height:100%;z-index:-1}
+header h1{color:#bbf7d0;text-shadow:0 2px 12px #052e16}header p{color:#d1fae5}
+.ticker{background:rgba(5,46,22,.88);color:#ecfccb;font-size:1.15rem;padding:12px 0;border-block:1px solid var(--bd)}
+.ticker span{animation-duration:260s}.ticker:hover span,.ticker:active span{animation-play-state:paused}
+.card{backdrop-filter:blur(6px);box-shadow:0 8px 30px rgba(0,0,0,.35)}
+button{background:#16a34a;color:#fff}button:hover{background:#22c55e}
+button.opt{background:rgba(255,255,255,.07);color:var(--fg)}button.opt:hover{background:rgba(255,255,255,.16)}
+input{background:rgba(255,255,255,.1)}input::placeholder{color:var(--mut)}.bar i{background:#22c55e}
+</style><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* ===== SETUP: paste your Firebase web-app values below, and change the admin PIN ===== */
+const FIREBASE_CONFIG={apiKey:"PASTE",authDomain:"PASTE",databaseURL:"PASTE",projectId:"PASTE",appId:"PASTE"};
+const ADMIN_PIN="kavach2026";
+/* ======================================================================================= */
+let FB=null;try{if(FIREBASE_CONFIG.databaseURL.indexOf("https://")===0){firebase.initializeApp(FIREBASE_CONFIG);FB=firebase.database()}}catch(e){}
+window.claude={use:async n=>{
+ if(n==="downloads")return{save:async({filename,data})=>{const a=document.createElement("a");a.href=URL.createObjectURL(data);a.download=filename;document.body.appendChild(a);a.click();a.remove()}};
+ if(n==="user"){let ok=false;if(location.hash==="#admin"){ok=prompt("Admin PIN")===ADMIN_PIN}return{canEdit:()=>ok}}
+ if(n==="db"){if(!FB)return null;return{
+  collection:c=>({add:r=>FB.ref(c).push(r),orderBy:()=>({limit:k=>({onSnapshot:(cb,er)=>FB.ref(c).orderByChild("score").limitToLast(k).on("value",s=>{const a=[];s.forEach(x=>{a.push({data:()=>x.val()})});cb({docs:a})},er)})})}),
+  doc:p=>({set:v=>FB.ref(p).set(v),onSnapshot:(cb,er)=>FB.ref(p).on("value",s=>cb({exists:s.exists(),data:()=>s.val()}),er)})}}
+ return null}};
+</script>
+</head><body>
+<svg class="bg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#052e16"/><stop offset=".55" stop-color="#14532d"/><stop offset="1" stop-color="#4d7c0f"/></linearGradient></defs><rect width="1000" height="700" fill="url(#sk)"/><circle cx="820" cy="140" r="58" fill="#d9f99d" opacity=".8"/><path d="M0 450 Q150 350 300 430 T600 410 T1000 390 V700 H0Z" fill="#166534"/><g fill="#0f3d22"><rect x="370" y="380" width="32" height="90"/><rect x="406" y="340" width="28" height="130"/><rect x="438" y="395" width="36" height="75"/><rect x="478" y="360" width="26" height="110"/><rect x="508" y="400" width="40" height="70"/><rect x="552" y="370" width="30" height="100"/><rect x="586" y="410" width="34" height="60"/></g><path d="M0 560 Q200 500 420 560 T1000 540 V700 H0Z" fill="#15803d"/><path d="M0 640 Q250 590 500 640 T1000 620 V700 H0Z" fill="#052e16"/><rect width="1000" height="700" fill="#000" opacity=".18"/></svg>
+<div id="vis"><header><h1>KAVACH</h1><p>Smart city disaster alert demo · Safety Quiz</p></header>
+<div class="ticker"><span id="tick"></span></div>
+<main>
+<section class="card" id="start"><h2>Play &amp; become a Safety Champion</h2>
+<p class="mut">Answer 10 questions. Score 80% or more to win a downloadable badge and goodies!</p>
+<input id="name" maxlength="30" placeholder="Enter your name" autocomplete="name">
+<p class="mut" style="margin:12px 0 0">Choose your language · भाषा चुनें</p><button data-l="en">Play in English</button><button data-l="hi">हिन्दी में खेलें</button></section>
+<section class="card hide" id="quiz"><div class="bar"><i id="pb"></i></div><div class="mut" id="qn"></div><h2 id="q"></h2><div id="opts"></div><p id="fb" class="mut"></p><button id="next" class="hide">Next</button></section>
+<section class="card hide" id="res"><h2 id="rt"></h2><p id="rm"></p><img id="bp" class="hide" alt="Safety Champion badge" style="width:100%;border-radius:8px;margin-top:6px"><button id="dl" class="hide">Download Safety Champion badge (PDF)</button><button id="again">Play again</button></section>
+<section class="card"><h2>🏆 Top 10 Safety Champions</h2><ol id="lb"><li class="mut">No winners yet – be the first!</li></ol><p class="mut" id="lbn"></p></section>
+</main></div>
+<div id="admview" class="hide"><header><h1>KAVACH</h1><p>Admin control room</p></header><main><section class="card adm" id="adm"><h2>Trigger sensor alert</h2><p class="mut">Pressing a button pops the alert on every visitor’s screen.</p><p class="mut" id="auth"></p>
+<div class="g"><button data-t="earthquake">🌍 Earthquake</button><button data-t="flood">🌊 Flood</button><button data-t="rail">🚆 Track breakage</button><button data-t="fire">🔥 Fire</button></div>
+<button id="clr" style="background:var(--mut)">Clear alert</button><p class="mut" id="admn"></p></section></main></div>
+<div id="alert" class="hide"><div class="ic" id="aic"></div><h2 id="ah"></h2><p id="ap"></p><p class="mut" style="color:#fecaca">KAVACH sensor network · automatic alert</p><button id="aok">I’m safe – dismiss</button></div>
+<script>
+const FACTS=["Did you know? Japan’s ancient builders used flexible wooden joints and central pillars in pagodas, and many have survived centuries of earthquakes.","Did you know? In 1737 Calcutta’s cyclone and in 1905 the Kangra earthquake led India to begin systematic seismic and weather records.","Did you know? Ancient Roman engineers built aqueducts and drains to carry floodwater away from cities.","Did you know? Along the Nile, Egyptians used “nilometers” to measure river height and warn farmers of coming floods.","Did you know? After the Great Fire of London in 1666, rebuilding rules required brick and stone houses and wider streets.","Did you know? Traditional homes in Kashmir used Taq and Dhajji Dewari timber-and-masonry methods that flex during quakes.","Did you know? Ahmedabad’s old stepwells and village ponds in Rajasthan stored monsoon water to protect against both drought and flood.","Did you know? Railway staff once walked tracks after storms to spot damage, and fog signal “detonators” warned drivers when sight was lost.","Did you know? Medieval towns kept a night watchman and bucket chains, and ringing church bells was the first fire alarm.","Did you know? Chinese scholar Zhang Heng built a seismoscope in 132 CE that showed the direction of a distant earthquake."];
+document.getElementById("tick").textContent=FACTS.join("   ✦   ");
+/* [English question, English options, Hindi question, Hindi options, index of correct option] */
+const QB=[
+["Which scale is commonly used to measure earthquake magnitude?",["Richter scale","Beaufort scale","Kelvin scale","Mohs scale"],"भूकंप की तीव्रता मापने के लिए आमतौर पर किस पैमाने का उपयोग होता है?",["रिक्टर स्केल","ब्यूफोर्ट स्केल","केल्विन स्केल","मोह्स स्केल"],0],
+["The point on the surface directly above where an earthquake starts is called the…",["Epicentre","Fault","Crest","Trench"],"भूकंप के उद्गम के ठीक ऊपर सतह के बिंदु को क्या कहते हैं?",["अधिकेंद्र (एपिसेंटर)","भ्रंश","शिखर","खाई"],0],
+["Which is India’s national agency for disaster management policy?",["NDMA","ISRO","DRDO","NITI Aayog"],"आपदा प्रबंधन की नीति बनाने वाली भारत की राष्ट्रीय संस्था कौन-सी है?",["NDMA","ISRO","DRDO","नीति आयोग"],0],
+["What does NDRF stand for?",["National Disaster Response Force","National Defence Rescue Force","National District Relief Fund","Nature Disaster Rescue Fleet"],"NDRF का पूरा नाम क्या है?",["राष्ट्रीय आपदा मोचन बल","राष्ट्रीय रक्षा बचाव बल","राष्ट्रीय जिला राहत कोष","प्रकृति आपदा बचाव बेड़ा"],0],
+["Which single national emergency number works across India?",["112","100","108","101"],"भारत में पूरे देश में चलने वाला एकल आपातकालीन नंबर कौन-सा है?",["112","100","108","101"],0],
+["What usually causes a tsunami?",["An earthquake under the sea","Strong sunshine","Winter winds","Only the full moon"],"सुनामी आमतौर पर किस कारण से आती है?",["समुद्र के नीचे भूकंप","तेज़ धूप","सर्दी की हवाएँ","केवल पूर्णिमा"],0],
+["In IMD’s colour-coded weather warnings, which colour means “take action”?",["Red","Green","Yellow","Blue"],"IMD की रंग-कोडित चेतावनी में “कार्रवाई करें” किस रंग से दर्शाया जाता है?",["लाल","हरा","पीला","नीला"],0],
+["In the PASS method for a fire extinguisher, what does the first “P” mean?",["Pull the pin","Push the handle","Pour water","Point at the ceiling"],"अग्निशामक की PASS विधि में पहले “P” का क्या अर्थ है?",["पिन खींचना","हैंडल धकेलना","पानी डालना","छत की ओर तानना"],0],
+["Which fire should you NOT put out with water?",["Electrical or oil fire","Paper fire","Wood fire","Cloth fire"],"किस आग को पानी से नहीं बुझाना चाहिए?",["बिजली या तेल की आग","कागज़ की आग","लकड़ी की आग","कपड़े की आग"],0],
+["Where is it safest to be during a lightning storm?",["Inside a closed building","Under a lone tree","In an open field","Next to a pole"],"बिजली गिरते समय सबसे सुरक्षित जगह कौन-सी है?",["बंद इमारत के अंदर","अकेले पेड़ के नीचे","खुला मैदान","खंभे के पास"],0],
+["About how deep can fast-moving water be to knock an adult off their feet?",["About 15 cm","About 2 metres","About 5 metres","Only above head height"],"तेज़ बहता पानी कितना गहरा हो तो वयस्क को गिरा सकता है?",["लगभग 15 सेमी","लगभग 2 मीटर","लगभग 5 मीटर","केवल सिर से ऊपर होने पर"],0],
+["You smell LPG in the kitchen. What should you do first?",["Open windows and avoid any switches","Switch on the lights","Light a match to find the leak","Switch on the fan"],"रसोई में LPG की गंध आ रही है। सबसे पहले क्या करें?",["खिड़कियाँ खोलें और कोई स्विच न दबाएँ","बत्ती जलाएँ","रिसाव ढूँढने को माचिस जलाएँ","पंखा चलाएँ"],0],
+["The Himalayas formed from the collision of which plates?",["Indian and Eurasian","African and Pacific","Pacific and Nazca","Antarctic and Arctic"],"हिमालय किन प्लेटों की टक्कर से बना?",["भारतीय और यूरेशियाई","अफ्रीकी और प्रशांत","प्रशांत और नाज़्का","अंटार्कटिक और आर्कटिक"],0],
+["Which seismic zone in India has the highest earthquake risk?",["Zone V","Zone II","Zone III","Zone IV"],"भारत का कौन-सा भूकंपीय क्षेत्र सबसे अधिक जोखिम वाला है?",["ज़ोन V","ज़ोन II","ज़ोन III","ज़ोन IV"],0],
+["In which year did the devastating Indian Ocean tsunami strike?",["2004","1999","2010","1991"],"हिंद महासागर में विनाशकारी सुनामी किस वर्ष आई थी?",["2004","1999","2010","1991"],0],
+["The 2001 earthquake that devastated Bhuj happened in which state?",["Gujarat","Maharashtra","Assam","Odisha"],"2001 में भुज को तबाह करने वाला भूकंप किस राज्य में आया था?",["गुजरात","महाराष्ट्र","असम","ओडिशा"],0],
+["How often should a family practise its emergency evacuation plan?",["At least twice a year","Never","Only after a disaster","Every ten years"],"परिवार को अपनी आपातकालीन निकासी योजना का अभ्यास कितनी बार करना चाहिए?",["कम से कम साल में दो बार","कभी नहीं","केवल आपदा के बाद","हर दस साल में"],0],
+["A coach of your train catches fire. What should you do?",["Exit quickly and move away from the tracks","Stay in your seat","Jump out of a window","Collect your luggage first"],"आपकी ट्रेन के डिब्बे में आग लग गई है। क्या करें?",["जल्दी बाहर निकलकर पटरियों से दूर जाएँ","अपनी सीट पर बैठे रहें","खिड़की से कूद जाएँ","पहले सामान निकालें"],0],
+["Which is the Indian Railways helpline number?",["139","100","102","1098"],"भारतीय रेल की हेल्पलाइन का नंबर कौन-सा है?",["139","100","102","1098"],0],
+["At a railway level crossing with the gate closed, you should…",["Wait until it opens","Duck under the barrier","Cross quickly","Race the train"],"बंद रेलवे फाटक पर आपको क्या करना चाहिए?",["खुलने तक प्रतीक्षा करें","बैरियर के नीचे से निकलें","जल्दी से पार करें","ट्रेन से होड़ लगाएँ"],0],
+["What is a “flash flood”?",["A sudden, fast flood within hours of heavy rain","A flood that slowly rises over months","A flood caused only by sea tides","A flood only in deserts"],"“फ्लैश फ्लड” क्या होता है?",["भारी बारिश के कुछ घंटों में आने वाली अचानक तेज़ बाढ़","महीनों में धीरे-धीरे बढ़ने वाली बाढ़","केवल समुद्री ज्वार से आने वाली बाढ़","केवल रेगिस्तान में आने वाली बाढ़"],0],
+["How should you treat a minor burn first?",["Cool it under running water for 10–20 minutes","Apply toothpaste","Apply ice directly","Pop the blisters"],"मामूली जले हुए हिस्से का पहले कैसे उपचार करें?",["बहते पानी में 10–20 मिनट ठंडा करें","टूथपेस्ट लगाएँ","सीधे बर्फ़ लगाएँ","छालों को फोड़ें"],0],
+["What is the recommended chest-compression rate for adult CPR?",["100–120 per minute","20–30 per minute","200–220 per minute","50–60 per minute"],"वयस्क CPR में छाती दबाने की सुझाई गई गति क्या है?",["प्रति मिनट 100–120","प्रति मिनट 20–30","प्रति मिनट 200–220","प्रति मिनट 50–60"],0],
+["You are driving when an earthquake strikes. What should you do?",["Stop in a safe open place and stay inside","Stop under a flyover","Speed up","Park beside a tall building"],"गाड़ी चलाते समय भूकंप आ जाए तो क्या करें?",["खुली सुरक्षित जगह रुककर गाड़ी में रहें","फ्लाईओवर के नीचे रुकें","गति बढ़ा दें","ऊँची इमारत के पास खड़ी करें"],0],
+["The calm “eye” of a cyclone passes over you. What should you remember?",["The storm will return from the other side","The storm is over","It is safe to go outside","Rain will stop for days"],"चक्रवात की शांत “आँख” आपके ऊपर से गुज़रे तो क्या याद रखें?",["तूफ़ान दूसरी दिशा से फिर लौटेगा","तूफ़ान समाप्त हो गया है","बाहर निकलना सुरक्षित है","कई दिन बारिश रुक जाएगी"],0],
+["Which is a warning sign of a landslide?",["Cracks in the ground","Tilting trees or poles","Muddy water in streams","All of these"],"भूस्खलन का चेतावनी संकेत कौन-सा है?",["ज़मीन में दरारें","पेड़ या खंभों का झुकना","नदी-नालों में गंदा पानी","ये सभी"],3],
+["What is the best habit during a heatwave?",["Drink water often and avoid midday sun","Drink only tea","Exercise at noon","Wear dark, tight clothes"],"लू (हीटवेव) के दौरान सबसे अच्छी आदत कौन-सी है?",["बार-बार पानी पिएँ और दोपहर की धूप से बचें","केवल चाय पिएँ","दोपहर में कसरत करें","गहरे, तंग कपड़े पहनें"],0],
+["What helps a building survive an earthquake?",["Strong, reinforced frames that can flex","Heavy tops on weak pillars","Cracked foundations","Very thin walls only"],"इमारत को भूकंप में बचाने में क्या मदद करता है?",["मज़बूत, लचीले प्रबलित ढाँचे","कमज़ोर खंभों पर भारी ऊपरी हिस्सा","टूटी नींव","केवल पतली दीवारें"],0],
+["In a smoke-filled room, you should…",["Stay low and crawl","Stand tall","Hold your breath and run","Open every door"],"धुएँ से भरे कमरे में आपको क्या करना चाहिए?",["झुककर या रेंगकर निकलें","सीधे खड़े रहें","साँस रोककर दौड़ें","हर दरवाज़ा खोल दें"],0],
+["What does a buzzer-based early warning system do?",["Alerts people quickly so they can act","Predicts the future exactly","Stops disasters from happening","Only plays music"],"बज़र आधारित पूर्व चेतावनी प्रणाली क्या करती है?",["लोगों को तुरंत सचेत करती है ताकि वे कदम उठा सकें","भविष्य की सटीक भविष्यवाणी करती है","आपदाओं को होने से रोकती है","केवल संगीत बजाती है"],0]
+];
+const $=id=>document.getElementById(id);
+let pName="",qs=[],i=0,score=0,locked=false,db=null,dl=null,lang="en";
+const tx=(e,h)=>lang==="hi"?h:e;
+const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+document.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{pName=$("name").value.trim();if(!pName){$("name").focus();return}
+ lang=b.dataset.l;const k=lang==="hi"?2:0;
+ qs=shuffle(QB).slice(0,10).map(r=>{const idx=shuffle(r[k+1].map((t,j)=>({t,j})));return{q:r[k],o:idx.map(x=>x.t),c:idx.findIndex(x=>x.j===r[4])}});
+ i=0;score=0;$("start").classList.add("hide");$("res").classList.add("hide");$("quiz").classList.remove("hide");show()});
+function show(){locked=false;const x=qs[i];$("pb").style.width=(i/qs.length*100)+"%";$("qn").textContent=tx("Question "+(i+1)+" of "+qs.length,"प्रश्न "+(i+1)+" / "+qs.length);$("q").textContent=x.q;$("fb").textContent="";$("next").classList.add("hide");
+ $("opts").innerHTML="";x.o.forEach((t,k)=>{const b=document.createElement("button");b.className="opt";b.textContent=t;b.onclick=()=>pick(k,b);$("opts").appendChild(b)})}
+function pick(k,b){if(locked)return;locked=true;const x=qs[i],bs=$("opts").children;
+ if(k===x.c){score++;b.classList.add("ok");$("fb").textContent=tx("Correct!","सही जवाब!")}else{b.classList.add("no");bs[x.c].classList.add("ok");$("fb").textContent=tx("Not quite – the right answer is highlighted.","सही उत्तर हरे रंग में दिखाया गया है।")}
+ $("next").textContent=i===qs.length-1?tx("See result","परिणाम देखें"):tx("Next","अगला");$("next").classList.remove("hide")}
+$("next").onclick=()=>{if(++i<qs.length)show();else finish()};
+$("again").onclick=()=>{$("res").classList.add("hide");$("start").classList.remove("hide")};
+function finish(){$("quiz").classList.add("hide");$("res").classList.remove("hide");const pct=Math.round(score/qs.length*100),win=pct>=80;
+ $("rt").textContent=win?tx("🎉 Congratulations, "+pName+"!","🎉 बधाई हो, "+pName+"!"):tx("Good try, "+pName+"!","अच्छा प्रयास, "+pName+"!");$("again").textContent=tx("Play again","फिर से खेलें");$("dl").textContent=tx("Download Safety Champion badge (PDF)","सेफ्टी चैंपियन बैज (PDF) डाउनलोड करें");
+ $("rm").textContent=tx("You scored "+score+"/"+qs.length+" ("+pct+"%). "+(win?"You are a KAVACH Safety Champion – show this screen at the desk to collect your goodies!":"You need 80% to win. Play again!"),"आपने "+score+"/"+qs.length+" ("+pct+"%) अंक पाए। "+(win?"आप KAVACH सेफ्टी चैंपियन हैं – उपहार लेने के लिए यह स्क्रीन डेस्क पर दिखाएँ!":"जीतने के लिए 80% चाहिए। फिर से खेलें!"));
+ $("dl").classList.toggle("hide",!win);$("bp").classList.add("hide");if(win){saveWinner(pct);badgeCanvas(pName,pct).then(c=>{$("bp").src=c.toDataURL("image/jpeg",.8);$("bp").classList.remove("hide")}).catch(()=>{})}}
+async function saveWinner(pct){const rec={name:pName.slice(0,30),score:pct,ts:Date.now()};
+ try{if(db)await db.collection("winners").add(rec);else throw 0}catch(e){const l=JSON.parse(localStorage.getItem("kv_w")||"[]");l.push(rec);try{localStorage.setItem("kv_w",JSON.stringify(l));renderLB(l)}catch(_){}}}
+$("dl").onclick=async()=>{try{const pdf=await makePDF(pName,Math.round(score/qs.length*100));if(dl)await dl.save({filename:"KAVACH-Safety-Champion.pdf",data:pdf})}catch(e){}};
+async function badgeCanvas(n,p){
+try{await Promise.all(["700 20px Cinzel","40px 'Great Vibes'","700 20px 'Cormorant Garamond'","500 20px 'Cormorant Garamond'","500 20px 'Noto Serif Devanagari'"].map(f=>document.fonts.load(f,"Aa अ")))}catch(e){}
+const S=3,c=document.createElement("canvas");c.width=822*S;c.height=581*S;const x=c.getContext("2d");x.scale(S,S);
+const G=(a,b,d,e)=>{const g=x.createLinearGradient(a,b,d,e);[[0,"#f7e49a"],[.3,"#c8962e"],[.55,"#f4d778"],[.8,"#a8741a"],[1,"#ecc95e"]].forEach(s=>g.addColorStop(s[0],s[1]));return g};
+const T=(s,y,f,col,ls,sx)=>{x.save();x.font=f;x.fillStyle=col;x.textAlign="center";x.textBaseline="middle";x.letterSpacing=ls+"px";x.translate(411,y);x.scale(sx||1,1);x.fillText(s,0,0);x.restore()};
+x.fillStyle="#010a4e";x.fillRect(0,0,822,581);
+x.strokeStyle="#d9c27a";x.lineWidth=1;x.strokeRect(35,34,746,514);
+x.strokeStyle=G(0,0,822,581);x.lineWidth=3;x.strokeRect(42,41,732,500);
+x.fillStyle="#fff";x.fillRect(58,58,706,465);
+x.fillStyle="#f6efdc";
+for(const sd of[-1,1])for(let k=0;k<13;k++){const th=-1.15+2.3*k/12,px=411+sd*195*Math.cos(th),py=315+135*Math.sin(th);x.save();x.translate(px,py);x.rotate(sd*(.5-th*.7));x.beginPath();x.ellipse(0,0,7,22,0,0,7);x.fill();x.restore()}
+T("CERTIFICATE",114,"700 46px Cinzel","#0b1f86",3);
+T("OF ACHIEVEMENT",157,"700 26px 'Cormorant Garamond'","#10122e",0,.9);
+T("This certificate is awarded to",217,"500 17px 'Cormorant Garamond'","#111",0);
+let fs=58;const nf=z=>z+"px 'Great Vibes','Noto Serif Devanagari',serif";x.font=nf(fs);while(x.measureText(n).width>330&&fs>22){fs-=2;x.font=nf(fs)}
+T(n,260,nf(fs),"#a9751c",0);x.fillStyle="#000";x.fillRect(271,290,282,1.5);
+T("as SAFETY CHAMPION",321,"700 28px 'Cormorant Garamond'","#0b1f86",0,.9);
+T("for scoring "+p+"% in the KAVACH Disaster Safety Quiz.",362,"500 14px 'Cormorant Garamond'","#111",0);
+T("KAVACH",402,"500 27px 'Cormorant Garamond'","#111",1);
+T("(DISASTER MANAGEMENT)",433,"500 20px 'Cormorant Garamond'","#111",0,.95);
+T(new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}).toUpperCase(),485,"500 20px 'Cormorant Garamond'","#111",0);
+x.fillStyle=G(660,0,760,200);x.beginPath();x.moveTo(668,0);x.lineTo(722,0);x.lineTo(706,125);x.lineTo(678,125);x.fill();
+x.beginPath();x.moveTo(716,160);x.bezierCurveTo(800,230,820,330,770,430);x.bezierCurveTo(745,490,730,540,745,581);x.lineTo(690,581);x.bezierCurveTo(690,520,720,470,742,420);x.bezierCurveTo(780,340,760,260,706,190);x.fill();
+x.fillStyle=G(820,150,640,581);x.beginPath();x.moveTo(690,210);x.bezierCurveTo(740,290,740,380,700,450);x.bezierCurveTo(675,500,665,545,675,581);x.lineTo(650,581);x.bezierCurveTo(640,540,650,495,672,450);x.bezierCurveTo(710,380,715,300,675,230);x.fill();
+x.fillStyle=G(640,150,760,240);x.beginPath();x.moveTo(670,160);x.lineTo(645,225);x.lineTo(668,212);x.lineTo(690,232);x.lineTo(700,165);x.fill();x.beginPath();x.moveTo(700,160);x.lineTo(722,228);x.lineTo(740,208);x.lineTo(758,216);x.lineTo(735,150);x.fill();
+x.save();x.shadowColor="rgba(0,0,0,.35)";x.shadowBlur=12;x.shadowOffsetY=3;x.fillStyle=G(640,60,760,190);x.beginPath();for(let k=0;k<28;k++){const a=k*Math.PI/14,qx=697+58*Math.cos(a),qy=122+58*Math.sin(a);x.moveTo(qx+7,qy);x.arc(qx,qy,7,0,7)}x.fill();x.beginPath();x.arc(697,122,54,0,7);x.fill();x.restore();
+x.strokeStyle="#b88a2c";x.lineWidth=2;x.beginPath();x.arc(697,122,45,0,7);x.stroke();
+const rg=x.createRadialGradient(685,108,4,697,122,44);rg.addColorStop(0,"#fbefb4");rg.addColorStop(1,"#b9892f");x.fillStyle=rg;x.beginPath();x.arc(697,122,43,0,7);x.fill();
+x.strokeStyle="rgba(120,80,10,.22)";x.lineWidth=1;for(let k=0;k<48;k++){const a=k*Math.PI/24;x.beginPath();x.moveTo(697,122);x.lineTo(697+43*Math.cos(a),122+43*Math.sin(a));x.stroke()}
+return c}
+async function makePDF(n,p){const c=await badgeCanvas(n,p);const jb=await new Promise(r=>c.toBlob(r,"image/jpeg",.92));const jpg=new Uint8Array(await jb.arrayBuffer());const te=new TextEncoder(),parts=[],off=[];let len=0;
+const add=b=>{parts.push(b);len+=b.length},s=t=>add(te.encode(t)),obj=(k,b)=>{off[k]=len;s(k+" 0 obj\n"+b+"\nendobj\n")};
+s("%PDF-1.4\n");obj(1,"<</Type/Catalog/Pages 2 0 R>>");obj(2,"<</Type/Pages/Kids[3 0 R]/Count 1>>");
+obj(3,"<</Type/Page/Parent 2 0 R/MediaBox[0 0 842 595]/Contents 4 0 R/Resources<</XObject<</Im0 5 0 R>>>>>>");
+const cs="q 842 0 0 595 0 0 cm /Im0 Do Q";obj(4,"<</Length "+cs.length+">>\nstream\n"+cs+"\nendstream");
+off[5]=len;s("5 0 obj\n<</Type/XObject/Subtype/Image/Width "+c.width+"/Height "+c.height+"/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length "+jpg.length+">>\nstream\n");add(jpg);s("\nendstream\nendobj\n");
+const xr=len;s("xref\n0 6\n0000000000 65535 f \n"+[1,2,3,4,5].map(k=>String(off[k]).padStart(10,"0")+" 00000 n \n").join("")+"trailer\n<</Size 6/Root 1 0 R>>\nstartxref\n"+xr+"\n%%EOF");
+return new Blob(parts,{type:"application/pdf"})}
+function legacyPDF(n,p){const e=s=>s.replace(/[^\x20-\x7E]/g,"?").replace(/[\\()]/g,"\\$&");
+ const t=(f,sz,y,s)=>{const w=s.length*sz*(f==="F2"?.55:.5);return"BT /"+f+" "+sz+" Tf "+Math.round((842-w)/2)+" "+y+" Td ("+e(s)+") Tj ET\n"};
+ const c="0.76 0.25 0.05 RG 6 w 30 30 782 535 re S 2 w 45 45 752 505 re S\n0.76 0.25 0.05 rg\n"+t("F2",54,470,"KAVACH")+"0 g\n"+t("F1",24,420,"Certificate of Achievement")+t("F1",18,360,"This badge is proudly awarded to")+"0.76 0.25 0.05 rg\n"+t("F2",44,300,n)+"0 g\n"+t("F1",20,235,"SAFETY CHAMPION")+t("F1",16,195,"for scoring "+p+"% in the KAVACH Disaster Safety Quiz")+t("F1",14,120,"Earthquake  |  Flood  |  Railway Track Breakage  |  Fire")+t("F1",12,80,new Date().toDateString());
+ const o=["<</Type/Catalog/Pages 2 0 R>>","<</Type/Pages/Kids[3 0 R]/Count 1>>","<</Type/Page/Parent 2 0 R/MediaBox[0 0 842 595]/Contents 4 0 R/Resources<</Font<</F1 5 0 R/F2 6 0 R>>>>>>","<</Length "+c.length+">>\nstream\n"+c+"endstream","<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>","<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold>>"];
+ let s="%PDF-1.4\n";const off=[];o.forEach((b,k)=>{off.push(s.length);s+=(k+1)+" 0 obj\n"+b+"\nendobj\n"});
+ const x=s.length;s+="xref\n0 7\n0000000000 65535 f \n"+off.map(v=>String(v).padStart(10,"0")+" 00000 n \n").join("")+"trailer\n<</Size 7/Root 1 0 R>>\nstartxref\n"+x+"\n%%EOF";
+ return new Blob([new TextEncoder().encode(s)],{type:"application/pdf"})}
+function renderLB(rows){const top=rows.sort((a,b)=>b.score-a.score||a.ts-b.ts).slice(0,10);if(!top.length)return;
+ $("lb").innerHTML="";top.forEach(r=>{const li=document.createElement("li");li.textContent=r.name;const b=document.createElement("b");b.textContent=r.score+"%";li.appendChild(b);$("lb").appendChild(li)})}
+const ALERTS={earthquake:["🌍","EARTHQUAKE DETECTED","Seismic sensors detected strong tremors. DROP, COVER and HOLD ON. Stay away from windows and move to an open area once shaking stops.",[880,660]],flood:["🌊","FLOOD ALERT","Water-level sensors show rising water. Move to higher ground immediately and avoid walking through floodwater.",[520,700]],rail:["🚆","RAILWAY TRACK BREAKAGE","Track sensors detected a breakage. Stay clear of the railway line and follow staff instructions. Train services are halted.",[1000,500]],fire:["🔥","FIRE DETECTED","Smoke and heat sensors triggered. Evacuate using the stairs, not lifts. Stay low and assemble at the nearest safe point.",[1200,900]]};
+let actx,siren;
+function ring(f){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.type="square";g.gain.value=.15;o.connect(g);g.connect(actx.destination);let k=0;o.frequency.value=f[0];siren=setInterval(()=>{o.frequency.value=f[++k%2]},400);o.start();o._g=g;siren=[siren,o]}catch(e){}}
+function stopRing(){try{if(siren){clearInterval(siren[0]);siren[1].stop()}}catch(e){}siren=null}
+function showAlert(t){const a=ALERTS[t];if(!a)return hideAlert();stopRing();$("aic").textContent=a[0];$("ah").textContent=a[1];$("ap").textContent=a[2];$("alert").classList.remove("hide");ring(a[3]);if(navigator.vibrate)navigator.vibrate([400,200,400,200,400])}
+function hideAlert(){$("alert").classList.add("hide");stopRing()}
+$("aok").onclick=hideAlert;
+let lastId=0;const seen=t=>{if(location.hash==="#admin"||!t||t.id===lastId)return;lastId=t.id;if(t.type&&Date.now()-t.id<90000)showAlert(t.type);else if(!t.type)hideAlert()};
+let bc;try{bc=new BroadcastChannel("kavach");bc.onmessage=e=>seen(e.data)}catch(e){}
+async function fire(type){const m={type,id:Date.now()};$("admn").textContent=type?"Sent: "+type:"Alert cleared";
+ try{if(!db)throw{message:"shared database not available – open signed in as the owner"};await db.doc("alerts/current").set(m)}catch(e){$("admn").textContent="Could not send to visitors: "+(e.code||e.message)}}
+document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>fire(b.dataset.t));$("clr").onclick=()=>fire("");
+const route=()=>{const a=location.hash==="#admin";$("vis").classList.toggle("hide",a);$("admview").classList.toggle("hide",!a);if(a)hideAlert()};route();window.addEventListener("hashchange",route);
+renderLB(JSON.parse((()=>{try{return localStorage.getItem("kv_w")}catch(e){return null}})()||"[]"));
+(async()=>{let user=null;try{user=await claude.use("user")}catch(e){}
+ try{dl=await claude.use("downloads")}catch(e){}
+ try{db=await claude.use("db")}catch(e){}
+ const ok=!!(user&&user.canEdit());$("auth").textContent=ok?"Signed in as admin – alerts are live.":"Open this page signed in as the owner or an editor to send alerts.";document.querySelectorAll("[data-t],#clr").forEach(b=>b.disabled=!ok);
+ if(!db){$("lbn").textContent="Showing winners from this device only.";return}
+ const t=setTimeout(()=>{$("lbn").textContent="Leaderboard is slow to load…"},10000);
+ db.collection("winners").orderBy("score","desc").limit(100).onSnapshot(s=>{clearTimeout(t);$("lbn").textContent="";renderLB(s.docs.map(d=>d.data()))},e=>{clearTimeout(t);$("lbn").textContent="Leaderboard unavailable."});
+ db.doc("alerts/current").onSnapshot(s=>{if(s.exists)seen(s.data())},()=>{})})();
+</script></body></html>
